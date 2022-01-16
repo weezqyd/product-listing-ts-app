@@ -14,12 +14,10 @@
 | and then import them inside `start/routes.ts` as follows
 |
 | import './routes/cart'
-| import './routes/customer'
 |
 */
 
+import './routes/auth'
 import Route from '@ioc:Adonis/Core/Route'
 
-Route.get('/', async () => {
-  return { hello: 'world' }
-})
+Route.get('/ping', async () => ({ message: 'pong' }))
