@@ -6,3 +6,11 @@ export const dummyUser = {
   password: 'foo&Bar%1',
   phoneNumber: '0712345678'
 }
+
+export const dummyCustomer = {
+  firstName: "Jane",
+  lastName: "Smith",
+  email: "jane.smith@example.com",
+  password: 'baz&foo%1',
+  phoneNumber: '0700345678'
+}
