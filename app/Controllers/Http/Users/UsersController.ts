@@ -3,21 +3,26 @@ import CreateUserValidator from "App/Validators/Users/CreateUserValidator";
 import User from "App/Models/User";
 import Event from "@ioc:Adonis/Core/Event";
 import UpdateUserValidator from "App/Validators/Users/UpdateUserValidator";
+import _ from "lodash";
+import { cuid } from '@ioc:Adonis/Core/Helpers'
 
 export default class UsersController {
 
   async create({request, response, bouncer, auth}: HttpContextContract) {
     await bouncer.with('UserPolicy').authorize("manage")
     const data = await request.validate(CreateUserValidator)
+    const password = cuid()
     const user = await User.create({
       firstName: data.firstName,
       lastName: data.lastName,
       phoneNumber: data.phoneNumber,
-      email: data.email
+      email: data.email,
+      password: password,
     })
     await user.related('roles').attach([data.roleId])
     await user.load('roles')
-    await Event.emit('users.manage.create', {data: user, creator: auth.user})
+    //We can send a verification email from the event listener
+    await Event.emit('users.manage.create', {data: user, creator: auth.user, password})
 
     return response.created({code: 200, data: user})
   }
@@ -44,15 +49,13 @@ export default class UsersController {
   async update({request, response, bouncer, auth}: HttpContextContract) {
     await bouncer.with('UserPolicy').authorize("manage")
     let user = await User.findOrFail(request.param('id'))
-    const validated = await request.validate(UpdateUserValidator)
     //remove null and empty values
-    let data = Object.fromEntries(Object.entries(validated).filter(([_, v]) => v != null || v != ''));
-    user = user.merge(data)
-
+    const validated = _.pickBy(await request.validate(UpdateUserValidator))
+    user = user.merge(validated)
     await Promise.all([
       user.save(),
       Event.emit('users.manage.updated', {
-        data: user,
+        data: {user},
         user: auth.user
       }),
     ])
