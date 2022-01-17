@@ -1,0 +1,59 @@
+version: '3'
+services:
+  app:
+    image: leitato/product-listing
+    restart: always
+    container_name: product-listing
+    build:
+      context: .
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '8080:${PORT:-3333}'
+    networks:
+      - product-listing
+    depends_on:
+      - postgres
+  postgres:
+    image: 'postgres:13'
+    restart: always
+    container_name: app-database
+    hostname: postgres
+    ports:
+      - '${FORWARD_DB_PORT:-5432}:5432'
+    environment:
+      PGPASSWORD: '${DB_PASSWORD:-secret}'
+      POSTGRES_DB: '${DB_NAME}'
+      POSTGRES_USER: '${DB_USER}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+    volumes:
+      - 'app-db:/var/lib/postgresql/data'
+    networks:
+      - product-listing
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "${DB_NAME}", "-U", "${DB_USER}" ]
+      retries: 3
+      timeout: 5s
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    depends_on:
+      - postgres
+    ports:
+      - "53603:53603"
+      - "9090:80"
+    networks:
+      - product-listing
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: secret
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+networks:
+  product-listing:
+    driver: bridge
+volumes:
+  app-db:
+    driver: local
